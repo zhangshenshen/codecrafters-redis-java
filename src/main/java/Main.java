@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.time.LocalDateTime;
@@ -37,6 +38,14 @@ public class Main {
       }
     } catch (IOException e) {
       out.println("IOException: " + e.getMessage());
+    } finally {
+      if (serverSocket != null && !serverSocket.isClosed()) {
+        try {
+          serverSocket.close();
+        } catch (IOException e) {
+          out.println("Error closing server socket: " + e.getMessage());
+        }
+      }
     }
   }
 
@@ -50,8 +59,10 @@ public class Main {
     @Override
     public void run() {
       out.println("====into run====");
-      try {
-        List<String> commandLineList = parseCommandList(clientSocket.getInputStream());
+      try (BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+           OutputStream outStream = clientSocket.getOutputStream()) {
+
+        List<String> commandLineList = parseCommandList(br);
         if (commandLineList == null || commandLineList.isEmpty()) {
           out.println("commandLineList is empty!");
           return;
@@ -76,24 +87,30 @@ public class Main {
           case "SET":
             responseMessage = parseSet(commandLineList);
             out.println("====case SET==== responseMessage: " + responseMessage);
-
             break;
 
           case "GET":
             responseMessage = parseGet(commandLineList);
             out.println("====case GET==== responseMessage: " + responseMessage);
-
             break;
 
           default:
             out.println("====case DEFAULT==== responseMessage: " + responseMessage);
-
             break;
         }
         out.println("==== out switch====");
-        clientSocket.getOutputStream().write(responseMessage.getBytes());
-      } catch (Exception e) {
-        e.printStackTrace();
+        outStream.write(responseMessage.getBytes());
+        outStream.flush();
+      } catch (IOException e) {
+        out.println("IOException: " + e.getMessage());
+      } finally {
+        try {
+          if (clientSocket != null && !clientSocket.isClosed()) {
+            clientSocket.close();
+          }
+        } catch (IOException e) {
+          out.println("Error closing client socket: " + e.getMessage());
+        }
       }
     }
   }
@@ -129,12 +146,17 @@ public class Main {
     String key = commandLineList.get(1);
     TimedValue timedValue = timedMap.get(key);
 
+    if (timedValue == null) {
+        return "$-1\r\n";
+    }
+
     if (timedValue.getExpireTime() != -1 && timedValue.createLocalDateTime
         .plus(timedValue.getExpireTime(), ChronoUnit.MILLIS).isBefore(LocalDateTime.now())) {
-      return "$-1\\r\\n";
+        timedMap.remove(key);
+        return "$-1\r\n";
     } else {
-      return String.format("$%d\r\n%s\r\n", timedValue.getValue().length(),
-          timedValue.getValue());
+        return String.format("$%d\r\n%s\r\n", timedValue.getValue().length(),
+            timedValue.getValue());
     }
   }
 
@@ -144,13 +166,13 @@ public class Main {
    * @param inputStream
    * @return
    */
-  public static List<String> parseCommandList(InputStream inputStream) {
+  public static List<String> parseCommandList(BufferedReader br) {
     out.println("====parseCommandList====");
     List<String> resuList = new ArrayList<>();
 
-    try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
+    try {
       String line;
-      while (br.ready() && (line = br.readLine()) != null) {
+      while ((line = br.readLine()) != null) {
         out.println("====line====" + line);
 
         if (containCommandType(line)) {
@@ -215,11 +237,11 @@ public class Main {
 
   static class TimedValue {
 
-    private String value;
+    private final String value;
 
-    private long expireTime;
+    private final long expireTime;
 
-    private LocalDateTime createLocalDateTime;
+    private final LocalDateTime createLocalDateTime;
 
     public TimedValue(String value, long expireTime) {
       this.value = value;
@@ -231,24 +253,12 @@ public class Main {
       return value;
     }
 
-    public void setValue(String value) {
-      this.value = value;
-    }
-
     public long getExpireTime() {
       return expireTime;
     }
 
-    public void setExpireTime(long expireTime) {
-      this.expireTime = expireTime;
-    }
-
     public LocalDateTime getCreateLocalDateTime() {
       return createLocalDateTime;
-    }
-
-    public void setCreateLocalDateTime(LocalDateTime createLocalDateTime) {
-      this.createLocalDateTime = createLocalDateTime;
     }
 
     @Override
