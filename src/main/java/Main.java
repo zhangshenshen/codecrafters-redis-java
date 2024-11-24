@@ -149,9 +149,9 @@ public class Main {
     List<String> resuList = new ArrayList<>();
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
-
-      String line = "";
+      String line ;
       while ((line = br.readLine()) != null) {
+        System.out.println("====line====" + line);
         resuList.add(line);
       }
     } catch (Exception e) {
