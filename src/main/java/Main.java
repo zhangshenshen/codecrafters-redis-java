@@ -151,7 +151,7 @@ public class Main {
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
       String line;
-      while ((line = br.readLine()) != null && !line.isEmpty() &&!line.isBlank()) {
+      while (br.ready() && (line = br.readLine()) != null) {
         System.out.println("====line====" + line);
         resuList.add(line);
       }
