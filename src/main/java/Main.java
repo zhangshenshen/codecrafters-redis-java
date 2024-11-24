@@ -93,8 +93,7 @@ public class Main {
         }
       } catch (Exception e) {
         out.println("Exception: " + e.getMessage());
-        out.println(e.getLocalizedMessage());
-        out.println(e.getStackTrace());
+        e.printStackTrace();
       }
     }
   }
