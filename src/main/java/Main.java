@@ -36,19 +36,17 @@ public class Main {
 
       while (true) {
         clientSocket = serverSocket.accept();
-        out.write("+PONG\r\n".getBytes());
-        return;
-        // new Thread(new ClientHandler(clientSocket)).start();
+        new Thread(new ClientHandler(clientSocket)).start();
       }
     } catch (IOException e) {
-      System.out.println("IOException: " + e.getMessage());
+      out.println("IOException: " + e.getMessage());
     } finally {
       try {
         if (clientSocket != null) {
           clientSocket.close();
         }
       } catch (IOException e) {
-        System.out.println("IOException: " + e.getMessage());
+        out.println("IOException: " + e.getMessage());
       }
     }
   }
@@ -62,34 +60,34 @@ public class Main {
 
     @Override
     public void run() {
-      System.out.println("====into run====");
+      out.println("====into run====");
       try {
         List<String> commandLineList = parseCommandList(clientSocket.getInputStream());
         if (commandLineList == null || commandLineList.isEmpty()) {
           System.out.println("commandLineList is empty!");
           return;
         }
-        System.out.println("====out parseCommandList====");
+        out.println("====out parseCommandList====");
         String command = commandLineList.get(0);
-        OutputStream out = clientSocket.getOutputStream();
+        OutputStream outputStream = clientSocket.getOutputStream();
 
-        System.out.println("first command : " + command);
+        out.println("first command : " + command);
 
         switch (command.toUpperCase()) {
           case "PING":
-            parsePing(commandLineList, out);
+            parsePing(commandLineList, outputStream);
             break;
 
           case "ECHO":
-            parseEcho(commandLineList, out);
+            parseEcho(commandLineList, outputStream);
             break;
 
           case "SET":
-            parseSet(commandLineList, out);
+            parseSet(commandLineList, outputStream);
             break;
 
           case "GET":
-            parseGet(commandLineList, out);
+            parseGet(commandLineList, outputStream);
             break;
 
           default:
@@ -97,21 +95,21 @@ public class Main {
         }
 
       } catch (Exception e) {
-        System.out.println("Exception: " + e.getMessage());
+        out.println("Exception: " + e.getMessage());
       }
     }
   }
 
-  private static void parsePing(List<String> commandLineList, OutputStream out) throws IOException {
-    out.write("+PONG\r\n".getBytes());
+  private static void parsePing(List<String> commandLineList, OutputStream outputStream) throws IOException {
+    outputStream.write("+PONG\r\n".getBytes());
   }
 
-  private static void parseEcho(List<String> commandLineList, OutputStream out) throws IOException {
+  private static void parseEcho(List<String> commandLineList, OutputStream outputStream) throws IOException {
     String message = commandLineList.get(1);
-    out.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
+    outputStream.write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
   }
 
-  private static void parseSet(List<String> commandLineList, OutputStream out) throws IOException {
+  private static void parseSet(List<String> commandLineList, OutputStream outputStream) throws IOException {
 
     String key = commandLineList.get(1);
     String value = commandLineList.get(2);
@@ -125,18 +123,18 @@ public class Main {
     } else {
       timedMap.put(key, new TimedValue(value, -1));
     }
-    out.write("+OK\r\n".getBytes());
+    outputStream.write("+OK\r\n".getBytes());
   }
 
-  private static void parseGet(List<String> commandLineList, OutputStream out) throws IOException {
+  private static void parseGet(List<String> commandLineList, OutputStream outputStream) throws IOException {
     String key = commandLineList.get(1);
     TimedValue timedValue = timedMap.get(key);
 
     if (timedValue.getExpireTime() != -1 && timedValue.createLocalDateTime
         .plus(timedValue.getExpireTime(), ChronoUnit.MILLIS).isBefore(LocalDateTime.now())) {
-      out.write("$-1\r\n".getBytes());
+      outputStream.write("$-1\r\n".getBytes());
     } else {
-      out.write(String.format("$%d\r\n%s\r\n", timedValue.getValue().length(),
+      outputStream.write(String.format("$%d\r\n%s\r\n", timedValue.getValue().length(),
           timedValue.getValue()).getBytes());
     }
   }
@@ -148,18 +146,18 @@ public class Main {
    * @return
    */
   public static List<String> parseCommandList(InputStream inputStream) {
-    System.out.println("====parseCommandList====");
+    out.println("====parseCommandList====");
     List<String> resuList = new ArrayList<>();
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
       String line;
       while (br.ready() && (line = br.readLine()) != null) {
-        System.out.println("====line====" + line);
+        out.println("====line====" + line);
         resuList.add(line);
       }
-      System.out.println("====out while====");
+      out.println("====out while====");
     } catch (Exception e) {
-      System.out.println("Exception message: " + e.getMessage());
+      out.println("Exception message: " + e.getMessage());
     }
     return resuList;
   }
