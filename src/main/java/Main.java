@@ -155,6 +155,7 @@ public class Main {
         System.out.println("====line====" + line);
         resuList.add(line);
       }
+      System.out.println("====out while====");
     } catch (Exception e) {
       System.out.println("Exception message: " + e.getMessage());
     }
