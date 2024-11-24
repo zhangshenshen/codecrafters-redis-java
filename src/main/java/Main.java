@@ -67,6 +67,7 @@ public class Main {
           System.out.println("commandLineList is empty!");
           return;
         }
+        System.out.println("====out parseCommandList====");
         String command = commandLineList.get(0);
         OutputStream out = clientSocket.getOutputStream();
 
@@ -149,7 +150,7 @@ public class Main {
     List<String> resuList = new ArrayList<>();
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
-      String line ;
+      String line;
       while ((line = br.readLine()) != null) {
         System.out.println("====line====" + line);
         resuList.add(line);
