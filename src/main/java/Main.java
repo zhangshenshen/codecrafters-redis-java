@@ -10,8 +10,10 @@ import java.nio.channels.SocketChannel;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -19,7 +21,20 @@ public class Main {
 
   private static final ConcurrentHashMap<String, TimedValue> timedMap = new ConcurrentHashMap<>();
 
+  public static Map<String, String> config = new HashMap<String, String>();
+
   public static void main(String[] args) {
+
+    for (int i = 0; i < args.length; i++) {
+      String arg = args[i];
+      if (arg.equals("--dir")) {
+        config.put("dir", args[++i]);
+      }
+      if (arg.equals("--dbfilename")) {
+        config.put("dbfilename", args[++i]);
+      }
+    }
+
     try (Selector selector = Selector.open();
         ServerSocketChannel serverSocketChannel = ServerSocketChannel.open()) {
 
@@ -146,37 +161,13 @@ public class Main {
   }
 
   private static String parseConfig(List<String> commandLineList) {
-    String commandString = commandLineList.get(1);
 
     String parameterString = commandLineList.get(2);
 
-    String result = "";
-    switch (commandString.toUpperCase()) {
-      case "GET":
-        break;
-
-      default:
-        break;
-    }
-    switch (parameterString.toLowerCase()) {
-      case "dir":
-        result = "*2\r\n" +
-            "$3\r\n" +
-            "dir\r\n" +
-            "$16\r\n" +
-            "/tmp/redis-files\r\n";
-        break;
-
-      case "dbfilename":
-        result = "*2\r\n" +
-            "$3\r\n" +
-            "dbfilename\r\n" +
-            "$8\r\n" +
-            "dump.rdb\r\n";
-        break;
-      default:
-        break;
-    }
+    String result = String.format("*%d\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", 2,
+        parameterString.length(),
+        parameterString, config.get(parameterString).length(),
+        config.get(parameterString));
     return result;
   }
 
