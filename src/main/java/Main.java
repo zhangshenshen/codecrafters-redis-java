@@ -60,6 +60,7 @@ public class Main {
 
     @Override
     public void run() {
+      System.out.println("====into run====");
       try {
         List<String> commandLineList = parseCommandList(clientSocket.getInputStream());
         if (commandLineList == null || commandLineList.isEmpty()) {
@@ -144,6 +145,7 @@ public class Main {
    * @return
    */
   public static List<String> parseCommandList(InputStream inputStream) {
+    System.out.println("====parseCommandList====");
     List<String> resuList = new ArrayList<>();
 
     try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
