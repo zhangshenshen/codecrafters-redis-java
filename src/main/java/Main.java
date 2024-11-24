@@ -23,7 +23,6 @@ public class Main {
 
     // Uncomment this block to pass the first stage
     ServerSocket serverSocket = null;
-    Socket clientSocket = null;
     int port = 6379;
 
     try {
@@ -32,21 +31,12 @@ public class Main {
       // ensures that we don't run into 'Address already in use' errors
       serverSocket.setReuseAddress(true);
       // Wait for connection from client.
-
       while (true) {
-        clientSocket = serverSocket.accept();
+        Socket clientSocket = serverSocket.accept();
         new Thread(new ClientHandler(clientSocket)).start();
       }
     } catch (IOException e) {
       out.println("IOException: " + e.getMessage());
-    } finally {
-      try {
-        if (clientSocket != null) {
-          clientSocket.close();
-        }
-      } catch (IOException e) {
-        out.println("IOException: " + e.getMessage());
-      }
     }
   }
 
@@ -110,14 +100,11 @@ public class Main {
 
   private static String parsePing(List<String> commandLineList) {
     out.println("====into parse PING====");
-    // clientSocket.getOutputStream().write("+PONG\r\n".getBytes());
     return "+PONG\r\n";
   }
 
   private static String parseEcho(List<String> commandLineList) {
     String message = commandLineList.get(1);
-    // clientSocket.getOutputStream().write(String.format("$%d\r\n%s\r\n",
-    // message.length(), message).getBytes());
     return String.format("$%d\r\n%s\r\n", message.length(), message);
   }
 
@@ -135,7 +122,6 @@ public class Main {
     } else {
       timedMap.put(key, new TimedValue(value, -1));
     }
-    // clientSocket.getOutputStream().write("+OK\r\n".getBytes());
     return "+OK\r\n";
   }
 
@@ -145,12 +131,8 @@ public class Main {
 
     if (timedValue.getExpireTime() != -1 && timedValue.createLocalDateTime
         .plus(timedValue.getExpireTime(), ChronoUnit.MILLIS).isBefore(LocalDateTime.now())) {
-      // clientSocket.getOutputStream().write("$-1\r\n".getBytes());
       return "$-1\\r\\n";
     } else {
-      // clientSocket.getOutputStream().write(String.format("$%d\r\n%s\r\n",
-      // timedValue.getValue().length(),
-      // timedValue.getValue()).getBytes());
       return String.format("$%d\r\n%s\r\n", timedValue.getValue().length(),
           timedValue.getValue());
     }
