@@ -68,6 +68,7 @@ public class Main {
           return;
         }
         out.println("====out parseCommandList====");
+        out.println("commandList: "+ commandLineList);
         String command = commandLineList.get(0);
         OutputStream outputStream = clientSocket.getOutputStream();
 
