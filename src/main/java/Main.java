@@ -100,6 +100,7 @@ public class Main {
   }
 
   private static void parsePing(List<String> commandLineList, Socket clientSocket) throws IOException {
+    out.println("====into parse PING====");
     clientSocket.getOutputStream().write("+PONG\r\n".getBytes());
   }
 
