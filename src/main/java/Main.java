@@ -71,44 +71,48 @@ public class Main {
         String command = commandLineList.get(0);
         out.println("first command : " + command);
 
+        String responseMessage = "";
         switch (command.toUpperCase()) {
           case "PING":
-            parsePing(commandLineList, clientSocket);
+            responseMessage = parsePing(commandLineList);
             break;
 
           case "ECHO":
-            parseEcho(commandLineList, clientSocket);
+            responseMessage = parseEcho(commandLineList);
             break;
 
           case "SET":
-            parseSet(commandLineList, clientSocket);
+            responseMessage = parseSet(commandLineList);
             break;
 
           case "GET":
-            parseGet(commandLineList, clientSocket);
+            responseMessage = parseGet(commandLineList);
             break;
 
           default:
             break;
         }
+        clientSocket.getOutputStream().write(responseMessage.getBytes());
       } catch (Exception e) {
-        out.println("Exception: " + e.getMessage());
         e.printStackTrace();
       }
     }
   }
 
-  private static void parsePing(List<String> commandLineList, Socket clientSocket) throws IOException {
+  private static String parsePing(List<String> commandLineList) {
     out.println("====into parse PING====");
-    clientSocket.getOutputStream().write("+PONG\r\n".getBytes());
+    // clientSocket.getOutputStream().write("+PONG\r\n".getBytes());
+    return "+PONG\r\n";
   }
 
-  private static void parseEcho(List<String> commandLineList, Socket clientSocket) throws IOException {
+  private static String parseEcho(List<String> commandLineList) {
     String message = commandLineList.get(1);
-    clientSocket.getOutputStream().write(String.format("$%d\r\n%s\r\n", message.length(), message).getBytes());
+    // clientSocket.getOutputStream().write(String.format("$%d\r\n%s\r\n",
+    // message.length(), message).getBytes());
+    return String.format("$%d\r\n%s\r\n", message.length(), message);
   }
 
-  private static void parseSet(List<String> commandLineList, Socket clientSocket) throws IOException {
+  private static String parseSet(List<String> commandLineList) {
 
     String key = commandLineList.get(1);
     String value = commandLineList.get(2);
@@ -122,19 +126,24 @@ public class Main {
     } else {
       timedMap.put(key, new TimedValue(value, -1));
     }
-    clientSocket.getOutputStream().write("+OK\r\n".getBytes());
+    // clientSocket.getOutputStream().write("+OK\r\n".getBytes());
+    return "+OK\r\n";
   }
 
-  private static void parseGet(List<String> commandLineList, Socket clientSocket) throws IOException {
+  private static String parseGet(List<String> commandLineList) {
     String key = commandLineList.get(1);
     TimedValue timedValue = timedMap.get(key);
 
     if (timedValue.getExpireTime() != -1 && timedValue.createLocalDateTime
         .plus(timedValue.getExpireTime(), ChronoUnit.MILLIS).isBefore(LocalDateTime.now())) {
-      clientSocket.getOutputStream().write("$-1\r\n".getBytes());
+      // clientSocket.getOutputStream().write("$-1\r\n".getBytes());
+      return "$-1\\r\\n";
     } else {
-      clientSocket.getOutputStream().write(String.format("$%d\r\n%s\r\n", timedValue.getValue().length(),
-          timedValue.getValue()).getBytes());
+      // clientSocket.getOutputStream().write(String.format("$%d\r\n%s\r\n",
+      // timedValue.getValue().length(),
+      // timedValue.getValue()).getBytes());
+      return String.format("$%d\r\n%s\r\n", timedValue.getValue().length(),
+          timedValue.getValue());
     }
   }
 
