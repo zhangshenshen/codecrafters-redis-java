@@ -75,23 +75,32 @@ public class Main {
         switch (command.toUpperCase()) {
           case "PING":
             responseMessage = parsePing(commandLineList);
+            out.println("====case PING==== responseMessage: " + responseMessage);
             break;
 
           case "ECHO":
             responseMessage = parseEcho(commandLineList);
+            out.println("====case ECHO==== responseMessage: " + responseMessage);
             break;
 
           case "SET":
             responseMessage = parseSet(commandLineList);
+            out.println("====case SET==== responseMessage: " + responseMessage);
+
             break;
 
           case "GET":
             responseMessage = parseGet(commandLineList);
+            out.println("====case GET==== responseMessage: " + responseMessage);
+
             break;
 
           default:
+            out.println("====case DEFAULT==== responseMessage: " + responseMessage);
+
             break;
         }
+        out.println("==== out switch====");
         clientSocket.getOutputStream().write(responseMessage.getBytes());
       } catch (Exception e) {
         e.printStackTrace();
