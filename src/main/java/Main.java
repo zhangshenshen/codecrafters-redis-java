@@ -152,6 +152,11 @@ public class Main {
       String line;
       while (br.ready() && (line = br.readLine()) != null) {
         out.println("====line====" + line);
+
+        if (containCommandType(line)) {
+          out.println("====skip command====: " + line);
+          continue;
+        }
         resuList.add(line);
       }
       out.println("====out while====");
@@ -159,6 +164,15 @@ public class Main {
       out.println("Exception message: " + e.getMessage());
     }
     return resuList;
+  }
+
+  static boolean containCommandType(String line) {
+    for (CommandType item : CommandType.values()) {
+      if (line.toLowerCase().contains(String.valueOf(item.value))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   static enum CommandType {
