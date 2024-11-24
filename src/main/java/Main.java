@@ -36,7 +36,9 @@ public class Main {
 
       while (true) {
         clientSocket = serverSocket.accept();
-        new Thread(new ClientHandler(clientSocket)).start();
+        out.write("+PONG\r\n".getBytes());
+        return;
+        // new Thread(new ClientHandler(clientSocket)).start();
       }
     } catch (IOException e) {
       System.out.println("IOException: " + e.getMessage());
@@ -67,11 +69,6 @@ public class Main {
           System.out.println("commandLineList is empty!");
           return;
         }
-
-        out.write("+PONG\r\n".getBytes());
-        return;
-
-
         System.out.println("====out parseCommandList====");
         String command = commandLineList.get(0);
         OutputStream out = clientSocket.getOutputStream();
