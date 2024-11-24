@@ -160,21 +160,19 @@ public class Main {
     }
     switch (parameterString.toLowerCase()) {
       case "dir":
-        result = "*2\\r\\n" +
-            "$3\\r\\n" +
-            "dir\\r\\n" +
-            "$16\\r\\n" +
-            "/tmp/redis-files\\r\\n" +
-            "\r\n";
+        result = "*2\r\n" +
+            "$3\r\n" +
+            "dir\r\n" +
+            "$16\r\n" +
+            "/tmp/redis-files\r\n";
         break;
 
       case "dbfilename":
-        result = "*2\\r\\n" +
-            "$3\\r\\n" +
-            "dbfilename\\r\\n" +
-            "$16\\r\\n" +
-            "dump.rdb\\r\\n" +
-            "\r\n";
+        result = "*2\r\n" +
+            "$3\r\n" +
+            "dbfilename\r\n" +
+            "$8\r\n" +
+            "dump.rdb\r\n";
         break;
       default:
         break;
