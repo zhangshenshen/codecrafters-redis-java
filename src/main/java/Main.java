@@ -1,272 +1,247 @@
 import static java.lang.System.out;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Main {
 
-  private static final ConcurrentHashMap<String, TimedValue> timedMap = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, TimedValue> timedMap = new ConcurrentHashMap<>();
 
-  public static void main(String[] args) {
-    // You can use print statements as follows for debugging, they'll be visible
-    // when running tests.
-    out.println("Logs from your program will appear here!");
+    public static void main(String[] args) {
+        out.println("Logs from your program will appear here!");
 
-    // Uncomment this block to pass the first stage
-    ServerSocket serverSocket = null;
-    int port = 6379;
+        try (Selector selector = Selector.open();
+             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open()) {
 
-    try {
-      serverSocket = new ServerSocket(port);
-      // Since the tester restarts your program quite often, setting SO_REUSEADDR
-      // ensures that we don't run into 'Address already in use' errors
-      serverSocket.setReuseAddress(true);
-      // Wait for connection from client.
-      while (true) {
-        Socket clientSocket = serverSocket.accept();
-        new Thread(new ClientHandler(clientSocket)).start();
-      }
-    } catch (IOException e) {
-      out.println("IOException: " + e.getMessage());
-    } finally {
-      if (serverSocket != null && !serverSocket.isClosed()) {
-        try {
-          serverSocket.close();
+            serverSocketChannel.bind(new InetSocketAddress(6379));
+            serverSocketChannel.configureBlocking(false);
+            serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+
+            while (true) {
+                selector.select(); // 阻塞直到有事件发生
+                Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                Iterator<SelectionKey> iterator = selectedKeys.iterator();
+
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
+                    iterator.remove();
+
+                    if (key.isAcceptable()) {
+                        handleAccept(key);
+                    } else if (key.isReadable()) {
+                        handleRead(key);
+                    }
+                }
+            }
         } catch (IOException e) {
-          out.println("Error closing server socket: " + e.getMessage());
+            out.println("IOException: " + e.getMessage());
         }
-      }
-    }
-  }
-
-  private static class ClientHandler implements Runnable {
-    private final Socket clientSocket;
-
-    public ClientHandler(Socket clientSocket) {
-      this.clientSocket = clientSocket;
     }
 
-    @Override
-    public void run() {
-      out.println("====into run====");
-      try (BufferedReader br = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-           OutputStream outStream = clientSocket.getOutputStream()) {
+    private static void handleAccept(SelectionKey key) throws IOException {
+        ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
+        SocketChannel socketChannel = serverChannel.accept();
+        socketChannel.configureBlocking(false);
+        socketChannel.register(key.selector(), SelectionKey.OP_READ);
+    }
 
-        List<String> commandLineList = parseCommandList(br);
+    private static void handleRead(SelectionKey key) throws IOException {
+        SocketChannel socketChannel = (SocketChannel) key.channel();
+        ByteBuffer buffer = ByteBuffer.allocate(256);
+        int bytesRead = socketChannel.read(buffer);
+
+        if (bytesRead == -1) {
+            socketChannel.close();
+            return;
+        }
+
+        buffer.flip();
+        String message = new String(buffer.array(), 0, buffer.limit());
+        out.println("Received: " + message);
+
+        List<String> commandLineList = parseCommandList(message);
         if (commandLineList == null || commandLineList.isEmpty()) {
-          out.println("commandLineList is empty!");
-          return;
+            out.println("commandLineList is empty!");
+            return;
         }
-        out.println("====out parseCommandList====");
-        out.println("commandList: " + commandLineList);
+
         String command = commandLineList.get(0);
-        out.println("first command : " + command);
-
         String responseMessage = "";
+
         switch (command.toUpperCase()) {
-          case "PING":
-            responseMessage = parsePing(commandLineList);
-            out.println("====case PING==== responseMessage: " + responseMessage);
-            break;
-
-          case "ECHO":
-            responseMessage = parseEcho(commandLineList);
-            out.println("====case ECHO==== responseMessage: " + responseMessage);
-            break;
-
-          case "SET":
-            responseMessage = parseSet(commandLineList);
-            out.println("====case SET==== responseMessage: " + responseMessage);
-            break;
-
-          case "GET":
-            responseMessage = parseGet(commandLineList);
-            out.println("====case GET==== responseMessage: " + responseMessage);
-            break;
-
-          default:
-            out.println("====case DEFAULT==== responseMessage: " + responseMessage);
-            break;
+            case "PING":
+                responseMessage = parsePing(commandLineList);
+                break;
+            case "ECHO":
+                responseMessage = parseEcho(commandLineList);
+                break;
+            case "SET":
+                responseMessage = parseSet(commandLineList);
+                break;
+            case "GET":
+                responseMessage = parseGet(commandLineList);
+                break;
+            default:
+                responseMessage = "-ERR unknown command\r\n";
+                break;
         }
-        out.println("==== out switch====");
-        outStream.write(responseMessage.getBytes());
-        outStream.flush();
-      } catch (IOException e) {
-        out.println("IOException: " + e.getMessage());
-      } finally {
-        try {
-          if (clientSocket != null && !clientSocket.isClosed()) {
-            clientSocket.close();
-          }
-        } catch (IOException e) {
-          out.println("Error closing client socket: " + e.getMessage());
+
+        socketChannel.write(ByteBuffer.wrap(responseMessage.getBytes()));
+    }
+
+    private static String parsePing(List<String> commandLineList) {
+        return "+PONG\r\n";
+    }
+
+    private static String parseEcho(List<String> commandLineList) {
+        String message = commandLineList.get(1);
+        return String.format("$%d\r\n%s\r\n", message.length(), message);
+    }
+
+    private static String parseSet(List<String> commandLineList) {
+        String key = commandLineList.get(1);
+        String value = commandLineList.get(2);
+
+        if (commandLineList.size() >= 4) {
+            String expireCommand = commandLineList.get(3);
+            if ("PX".equalsIgnoreCase(expireCommand)) {
+                long milSeconds = Long.parseLong(commandLineList.get(4));
+                timedMap.put(key, new TimedValue(value, milSeconds));
+            }
+        } else {
+            timedMap.put(key, new TimedValue(value, -1));
         }
-      }
-    }
-  }
-
-  private static String parsePing(List<String> commandLineList) {
-    out.println("====into parse PING====");
-    return "+PONG\r\n";
-  }
-
-  private static String parseEcho(List<String> commandLineList) {
-    String message = commandLineList.get(1);
-    return String.format("$%d\r\n%s\r\n", message.length(), message);
-  }
-
-  private static String parseSet(List<String> commandLineList) {
-
-    String key = commandLineList.get(1);
-    String value = commandLineList.get(2);
-
-    if (commandLineList.size() >= 4) {
-      String expireCommand = commandLineList.get(3);
-      if ("PX".equalsIgnoreCase(expireCommand)) {
-        long milSeconds = Long.parseLong(commandLineList.get(4));
-        timedMap.put(key, new TimedValue(value, milSeconds));
-      }
-    } else {
-      timedMap.put(key, new TimedValue(value, -1));
-    }
-    return "+OK\r\n";
-  }
-
-  private static String parseGet(List<String> commandLineList) {
-    String key = commandLineList.get(1);
-    TimedValue timedValue = timedMap.get(key);
-
-    if (timedValue == null) {
-        return "$-1\r\n";
+        return "+OK\r\n";
     }
 
-    if (timedValue.getExpireTime() != -1 && timedValue.createLocalDateTime
-        .plus(timedValue.getExpireTime(), ChronoUnit.MILLIS).isBefore(LocalDateTime.now())) {
-        timedMap.remove(key);
-        return "$-1\r\n";
-    } else {
-        return String.format("$%d\r\n%s\r\n", timedValue.getValue().length(),
-            timedValue.getValue());
-    }
-  }
+    private static String parseGet(List<String> commandLineList) {
+        String key = commandLineList.get(1);
+        TimedValue timedValue = timedMap.get(key);
 
-  /**
-   * parse out all command line at once;
-   * 
-   * @param inputStream
-   * @return
-   */
-  public static List<String> parseCommandList(BufferedReader br) {
-    out.println("====parseCommandList====");
-    List<String> resuList = new ArrayList<>();
-
-    try {
-      String line;
-      while ((line = br.readLine()) != null) {
-        out.println("====line====" + line);
-
-        if (containCommandType(line)) {
-          out.println("====skip command====: " + line);
-          continue;
+        if (timedValue == null) {
+            return "$-1\r\n";
         }
-        resuList.add(line);
-      }
-      out.println("====out while====");
-    } catch (Exception e) {
-      out.println("Exception message: " + e.getMessage());
-    }
-    return resuList;
-  }
 
-  static boolean containCommandType(String line) {
-    for (CommandType item : CommandType.values()) {
-      if (line.toLowerCase().contains(String.valueOf(item.value))) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  static enum CommandType {
-    SIMPLE_STRINGS('+'),
-    SIMPLE_ERRORS('-'),
-    INTEGERS(':'),
-    BULK_STRINGS('$'),
-    ARRAYS('*'),
-    NULLS('_'),
-    BOOLEANS('#'),
-    DOUBLES(','),
-    BIG_NUMBERS('('),
-    BULK_ERRORS('!'),
-    VERBATIM_STRINGS('='),
-    MAPS('%'),
-    ATTRIBUTES('`'),
-    SETS('~'),
-    PUSHES('>');
-
-    private char value;
-
-    CommandType(char value) {
-      this.value = value;
-    }
-
-    private char getValue() {
-      return value;
-    }
-
-    public static CommandType getCommandTypeByValue(char value) {
-      for (CommandType v : CommandType.values()) {
-        if (value == v.getValue()) {
-          return v;
+        if (timedValue.getExpireTime() != -1 && timedValue.createLocalDateTime
+                .plus(timedValue.getExpireTime(), ChronoUnit.MILLIS).isBefore(LocalDateTime.now())) {
+            timedMap.remove(key);
+            return "$-1\r\n";
+        } else {
+            return String.format("$%d\r\n%s\r\n", timedValue.getValue().length(),
+                    timedValue.getValue());
         }
-      }
-      return null;
     }
 
-  }
+    public static List<String> parseCommandList(String message) {
+        out.println("====parseCommandList====");
+        List<String> resuList = new ArrayList<>();
 
-  static class TimedValue {
+        String[] lines = message.split("\r\n");
+        for (String line : lines) {
+            out.println("====line====" + line);
 
-    private final String value;
+            if (containCommandType(line)) {
+                out.println("====skip command====: " + line);
+                continue;
+            }
+            resuList.add(line);
+        }
 
-    private final long expireTime;
-
-    private final LocalDateTime createLocalDateTime;
-
-    public TimedValue(String value, long expireTime) {
-      this.value = value;
-      this.expireTime = expireTime;
-      this.createLocalDateTime = LocalDateTime.now();
+        out.println("====out while====");
+        return resuList;
     }
 
-    public String getValue() {
-      return value;
+    static boolean containCommandType(String line) {
+        for (CommandType item : CommandType.values()) {
+            if (line.toLowerCase().contains(String.valueOf(item.value))) {
+                return true;
+            }
+        }
+        return false;
     }
 
-    public long getExpireTime() {
-      return expireTime;
+    static enum CommandType {
+        SIMPLE_STRINGS('+'),
+        SIMPLE_ERRORS('-'),
+        INTEGERS(':'),
+        BULK_STRINGS('$'),
+        ARRAYS('*'),
+        NULLS('_'),
+        BOOLEANS('#'),
+        DOUBLES(','),
+        BIG_NUMBERS('('),
+        BULK_ERRORS('!'),
+        VERBATIM_STRINGS('='),
+        MAPS('%'),
+        ATTRIBUTES('`'),
+        SETS('~'),
+        PUSHES('>');
+
+        private char value;
+
+        CommandType(char value) {
+            this.value = value;
+        }
+
+        private char getValue() {
+            return value;
+        }
+
+        public static CommandType getCommandTypeByValue(char value) {
+            for (CommandType v : CommandType.values()) {
+                if (value == v.getValue()) {
+                    return v;
+                }
+            }
+            return null;
+        }
+
     }
 
-    public LocalDateTime getCreateLocalDateTime() {
-      return createLocalDateTime;
-    }
+    static class TimedValue {
 
-    @Override
-    public String toString() {
-      return "TimedValue [value=" + value + ", expireTime=" + expireTime + ", createLocalDateTime="
-          + createLocalDateTime + "]";
-    }
+        private final String value;
 
-  }
+        private final long expireTime;
+
+        private final LocalDateTime createLocalDateTime;
+
+        public TimedValue(String value, long expireTime) {
+            this.value = value;
+            this.expireTime = expireTime;
+            this.createLocalDateTime = LocalDateTime.now();
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public long getExpireTime() {
+            return expireTime;
+        }
+
+        public LocalDateTime getCreateLocalDateTime() {
+            return createLocalDateTime;
+        }
+
+        @Override
+        public String toString() {
+            return "TimedValue [value=" + value + ", expireTime=" + expireTime + ", createLocalDateTime="
+                    + createLocalDateTime + "]";
+        }
+
+    }
 
 }
