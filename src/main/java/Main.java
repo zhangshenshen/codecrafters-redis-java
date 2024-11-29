@@ -2,6 +2,7 @@ import static java.lang.System.out;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
@@ -140,7 +141,7 @@ public class Main{
                     StringBuilder sb = new StringBuilder();
                     while((nextByte = fis.read()) != Integer.valueOf("FE", 16)){
                         // handler for metadata
-                        sb.append(nextByte);
+                        sb.append((char) nextByte);
                     }
 
                     out.println("metadata String: " + sb);
@@ -170,13 +171,14 @@ public class Main{
                             out.println("value type or encode: " + valueType);
 
                             while((nextByte = fis.read()) != Integer.valueOf("FF", 16)){
-                                sb1.append(nextByte);
+                                sb1.append((char) nextByte);
                             }
                             out.println("key-value String: " + sb1);
 
                             out.println("start end of file section");
-                            String checksum = Arrays.toString(fis.readNBytes(8));
-                            out.println("checksum: " + checksum);
+                            byte[] checksum = fis.readNBytes(8);
+                            BigInteger b1 = new BigInteger(1, checksum);
+                            out.println("checksum: " + b1.toString(16));
                             break;
                         }
                     }
