@@ -30,6 +30,13 @@ public class Main{
             }
         }
 
+        try{
+            readRDBFile();
+        }catch(IOException e){
+            out.println("IOException in read RDB File: " + e.getMessage());
+        }
+
+
         try(Selector selector = Selector.open();
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open()){
 
@@ -118,8 +125,6 @@ public class Main{
 
     private static String parseKeys(List<String> commandLineList) throws IOException{
 
-        readRDBFile();
-
         for(Map.Entry<String, String> entry : localMap.entrySet()){
             out.println("key: " + entry.getKey() + " value: " + entry.getValue());
         }
@@ -158,7 +163,6 @@ public class Main{
                     }
 
                     out.println("metadata String: " + sb);
-
                     //database section
                     out.println("start database section");
 
@@ -250,6 +254,12 @@ public class Main{
 
     private static String parseGet(List<String> commandLineList){
         String key = commandLineList.get(1);
+
+        if(localMap.get(key) != null){
+            return String.format("$%d\r\n%s\r\n", localMap.get(key).length(),
+                    localMap.get(key));
+        }
+
         TimedValue timedValue = timedMap.get(key);
 
         if(timedValue == null){
@@ -265,6 +275,7 @@ public class Main{
                     timedValue.getValue());
         }
     }
+
 
     private static String parseConfig(List<String> commandLineList){
 
