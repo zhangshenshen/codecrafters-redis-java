@@ -127,7 +127,11 @@ public class Main{
         String[] keys;
         keys = localMap.keySet().toArray(new String[0]);
         out.println(keys);
-        return keys.toString();
+        String result = String.format("*%d\r\n", keys.length);
+        for(String key : keys){
+            result += "$" + key.length() + "\r\n" + key + "\r\n";
+        }
+        return result;
     }
 
     private static void readRDBFile() throws IOException{
