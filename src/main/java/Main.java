@@ -16,6 +16,7 @@ public class Main{
     private static final ConcurrentHashMap<String, TimedValue> timedMap = new ConcurrentHashMap<>();
 
     public static Map<String, String> config = new HashMap<String, String>();
+    public static Map<String, String> localMap = new HashMap<String, String>();
 
     public static void main(String[] args){
 
@@ -118,7 +119,10 @@ public class Main{
 
         readRDBFile();
 
-        return "*1\r\n$3\r\nfoo\r\n";
+        for(Map.Entry<String, String> entry : localMap.entrySet()){
+            out.println("key: " + entry.getKey() + " value: " + entry.getValue());
+        }
+        return localMap.keySet().toString();
     }
 
     private static void readRDBFile() throws IOException{
@@ -166,14 +170,25 @@ public class Main{
                         if(hashTableSize == 0){
                             out.println("empty!");
                         }else{
-                            StringBuilder sb1 = new StringBuilder();
+                            StringBuilder kvsb = new StringBuilder();
+                            String key="";
+                            String value;
                             Integer valueType = fis.read();
                             out.println("value type or encode: " + valueType);
 
                             while((nextByte = fis.read()) != Integer.valueOf("FF", 16)){
-                                sb1.append((char) nextByte);
+
+                                if(nextByte == Integer.valueOf("05", 16)){
+                                    key = kvsb.toString();
+                                    kvsb.setLength(0);
+                                    continue;
+                                }
+                                kvsb.append((char) nextByte);
                             }
-                            out.println("key-value String: " + sb1);
+                            value = kvsb.toString();
+                            out.println("key-value: " + key + ":" + value);
+                            localMap.put(key, value);
+
 
                             out.println("start end of file section");
                             byte[] checksum = fis.readNBytes(8);
