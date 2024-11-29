@@ -208,7 +208,7 @@ public class Main{
                                     localMap.put(key, value);
 
                                     // skip one byte?
-                                    if(fis.read() == Integer.valueOf("FF", 16)){
+                                    if(odd > 0 && fis.read() == Integer.valueOf("FF", 16)){
                                         break;
                                     }
                                     continue;
