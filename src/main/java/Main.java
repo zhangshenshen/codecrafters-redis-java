@@ -136,7 +136,7 @@ public class Main {
       ByteBuffer bb = ByteBuffer.allocate(1024);
 
       while(fc.read(bb) != -1){
-        String content = new String(bb.array(), 0, bb.limit());
+        String content = new String(bb.array(), 0, bb.limit(), "UTF-8");
         out.println("content: " + content);
         bb.clear();
       }
