@@ -122,7 +122,11 @@ public class Main{
         for(Map.Entry<String, String> entry : localMap.entrySet()){
             out.println("key: " + entry.getKey() + " value: " + entry.getValue());
         }
-        return localMap.keySet().toString();
+
+        String[] keys;
+        keys = localMap.keySet().toArray(new String[0]);
+        out.println(keys);
+        return keys.toString();
     }
 
     private static void readRDBFile() throws IOException{
