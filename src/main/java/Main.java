@@ -148,13 +148,13 @@ public class Main{
                     //database section
                     out.println("start database section");
 
-                    while((nextByte = fis.read()) != Integer.valueOf("FB", 16)){
-                        Integer index = nextByte;
-                        out.println("the index of the database: " + index);
-                    }
+
+                    Integer index = fis.read();
+                    out.println("the index of the database: " + index);
 
 
-                    while((nextByte = fis.read()) != Integer.valueOf("FC", 16)){
+                    // fb section
+                    while((nextByte = fis.read()) != Integer.valueOf("FC", 16) && nextByte != -1){
                         // handler for database  fb section
                         Integer hashTableSize = nextByte;
                         out.println("total hash table size: " + hashTableSize);
@@ -164,15 +164,19 @@ public class Main{
 
                         if(hashTableSize == 0){
                             out.println("empty!");
-                        }else {
+                        }else{
                             StringBuilder sb1 = new StringBuilder();
                             Integer valueType = fis.read();
                             out.println("value type or encode: " + valueType);
 
-                            while((nextByte = fis.read()) != Integer.valueOf("FC", 16)){
+                            while((nextByte = fis.read()) != Integer.valueOf("FF", 16)){
                                 sb1.append(nextByte);
                             }
                             out.println("key-value String: " + sb1);
+
+                            out.println("start end of file section");
+                            String checksum = Arrays.toString(fis.readNBytes(8));
+                            out.println("checksum: " + checksum);
                             break;
                         }
                     }
@@ -184,15 +188,6 @@ public class Main{
 //                    while((nextByte = fis.read()) != Integer.valueOf("FF", 16)){
 //                        // handler for expire time fd
 //                    }
-
-
-                    //end of file
-                    if(nextByte == Integer.valueOf("FF", 16)){
-                        out.println("start end of file section");
-                        String checksum = Arrays.toString(fis.readNBytes(8));
-                        out.println("checksum: " + checksum);
-                        break;
-                    }
 
                 }
             }
