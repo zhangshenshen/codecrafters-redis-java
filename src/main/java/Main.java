@@ -171,14 +171,14 @@ public class Main{
                             out.println("empty!");
                         }else{
                             StringBuilder kvsb = new StringBuilder();
-                            String key="";
+                            String key = "";
                             String value;
                             Integer valueType = fis.read();
                             out.println("value type or encode: " + valueType);
 
                             while((nextByte = fis.read()) != Integer.valueOf("FF", 16)){
 
-                                if(nextByte == Integer.valueOf("05", 16)){
+                                if(nextByte < 32){
                                     key = kvsb.toString();
                                     kvsb.setLength(0);
                                     continue;
