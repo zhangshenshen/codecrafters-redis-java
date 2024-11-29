@@ -206,6 +206,11 @@ public class Main{
 
                                     out.println("key-value: " + key + ":" + value);
                                     localMap.put(key, value);
+
+                                    // skip one byte?
+                                    if(fis.read() == Integer.valueOf("FF", 16)){
+                                        break;
+                                    }
                                     continue;
                                 }
                                 kvsb.append((char) nextByte);
