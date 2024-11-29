@@ -1,12 +1,10 @@
 import static java.lang.System.out;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -109,12 +107,52 @@ public class Main {
       case "CONFIG":
         responseMessage = parseConfig(commandLineList);
         break;
+      case "KEYS":
+        responseMessage = parseKeys(commandLineList);
       default:
         responseMessage = "-ERR unknown command\r\n";
         break;
     }
 
     socketChannel.write(ByteBuffer.wrap(responseMessage.getBytes()));
+  }
+
+
+  private static String parseKeys(List<String> commandLineList) throws IOException{
+
+    readRDBFile();
+
+    return "*1\r\n$3\r\nfoo\r\n";
+  }
+
+  private static void  readRDBFile() throws IOException {
+    String dir = config.get("dir");
+    String dbfilename = config.get("dbfilename");
+    String filepath = dir +"/" +dbfilename;
+    try(
+            FileInputStream fis = new FileInputStream(filepath);
+            FileChannel fc = fis.getChannel();
+    ){
+      ByteBuffer bb = ByteBuffer.allocate(1024);
+
+      while(fc.read(bb) != -1){
+        String content = new String(bb.array(), 0, bb.limit());
+        out.println("content: " + content);
+        bb.clear();
+      }
+
+      //header section
+//      localMap.putIfAbsent("header", header);
+//      out.println("header: " + header);
+
+      // metadata section
+
+
+      //database section
+
+      //end of file
+    }
+
   }
 
   private static String parsePing(List<String> commandLineList) {
