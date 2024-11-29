@@ -106,6 +106,7 @@ public class Main{
                 break;
             case "KEYS":
                 responseMessage = parseKeys(commandLineList);
+                break;
             default:
                 responseMessage = "-ERR unknown command\r\n";
                 break;
