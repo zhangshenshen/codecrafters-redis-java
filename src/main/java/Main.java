@@ -185,22 +185,31 @@ public class Main{
                         }else{
                             StringBuilder kvsb = new StringBuilder();
                             String key = "";
-                            String value;
+                            String value = "";
                             Integer valueType = fis.read();
                             out.println("value type or encode: " + valueType);
 
+                            int odd = 0;
+
                             while((nextByte = fis.read()) != Integer.valueOf("FF", 16)){
 
-                                if(nextByte < 32){
+                                if(nextByte < 32 && odd % 2 == 0){
                                     key = kvsb.toString();
                                     kvsb.setLength(0);
+                                    odd++;
+                                    continue;
+                                }
+                                if(nextByte < 32 && odd % 2 == 1){
+                                    value = kvsb.toString();
+                                    kvsb.setLength(0);
+                                    odd++;
+
+                                    out.println("key-value: " + key + ":" + value);
+                                    localMap.put(key, value);
                                     continue;
                                 }
                                 kvsb.append((char) nextByte);
                             }
-                            value = kvsb.toString();
-                            out.println("key-value: " + key + ":" + value);
-                            localMap.put(key, value);
 
 
                             out.println("start end of file section");
